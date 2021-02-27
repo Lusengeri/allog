@@ -8,26 +8,47 @@
 char *level_strings[] = {"NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"};
 char *get_current_time_string();
 
-void set_log_level(struct log_obj* logger, log_lev lev)
+log_obj *new_log_obj(log_lev lev)
+{
+	log_obj *new = malloc(sizeof(log_obj));
+	new->level = lev;
+	return new;
+}
+
+void set_level(struct log_obj *logger, log_lev lev)
 {
 	logger->level = lev;	
 }
 
-void set_handler(struct log_obj* logger, struct handler *handlr)
+void add_handler(struct log_obj *logger, struct log_handler *handler)
 {
-	logger->handlr = handlr;
+	logger->handler = handler;
 }
 
-void log_message_to_file(FILE *log_file, log_lev level, char *log_string, va_list arg_ptr)
+void log_message(struct log_obj *logger, log_lev level, char *log_string, ...)
 {	
-	char full_log_string[2048];
-	vsprintf(full_log_string, log_string, arg_ptr);
-	fprintf(log_file, "[%s]:[%s]:%s\n", get_current_time_string(), level_strings[level], full_log_string);
+	va_list arg_ptr;
+	va_start(arg_ptr, log_string);
+
+	logger->handler->log_to(logger->handler, level, log_string, arg_ptr);
+
+	va_end(arg_ptr);
 	return;
 }
 
-void make_file_handler(struct handler *handlr, char *file_name)
+void log_message_to_file(struct log_handler *handler, log_lev level, char *log_string, va_list arg_ptr)
+{	
+	struct file_handler *f_handler = (struct file_handler*) handler;
+	char full_log_string[2048];
+	vsprintf(full_log_string, log_string, arg_ptr);
+	fprintf(f_handler->file, "[%s]:[%s]:%s\n", get_current_time_string(), level_strings[level], full_log_string);
+	return;
+}
+
+struct file_handler* new_file_handler(char *file_name)
 {
+	struct file_handler *new = malloc(sizeof(struct file_handler));
+
 	FILE *log_file = fopen(file_name, "a");
 	
 	if (log_file == NULL) {
@@ -35,20 +56,9 @@ void make_file_handler(struct handler *handlr, char *file_name)
 		exit(EXIT_FAILURE);
 	}
 
-	handlr->file = log_file;
-	//handlr->log_to = log_message_to_file;
-}
-
-void log_message(struct log_obj *log, log_lev level, char *log_string, ...)
-{	
-	va_list arg_ptr;
-	va_start(arg_ptr, log_string);
-
-	if (log->handlr->file != NULL)
-		log_message_to_file(log->handlr->file, log->level, log_string, arg_ptr);
-
-	va_end(arg_ptr);
-	return;
+	new->base.log_to = log_message_to_file;
+	new->file = log_file;
+	return new;
 }
 
 char *get_current_time_string()
