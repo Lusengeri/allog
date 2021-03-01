@@ -1,2 +1,2 @@
 # allog
-A fast logging library for the C programming language.
+A simple logging library for the C programming language.
