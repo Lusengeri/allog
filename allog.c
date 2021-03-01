@@ -12,6 +12,7 @@ log_obj *new_log_obj(log_lev lev)
 {
 	log_obj *new = malloc(sizeof(log_obj));
 	new->level = lev;
+	new->handler_list = new_list();	
 	return new;
 }
 
@@ -20,9 +21,9 @@ void set_level(struct log_obj *logger, log_lev lev)
 	logger->level = lev;	
 }
 
-void add_handler(struct log_obj *logger, struct log_handler *handler)
+void add_handler(struct log_obj *logger, void *handler)
 {
-	logger->handler = handler;
+	add_obj(logger->handler_list, (struct log_handler*)handler);
 }
 
 void log_message(struct log_obj *logger, log_lev level, char *log_string, ...)
@@ -30,7 +31,12 @@ void log_message(struct log_obj *logger, log_lev level, char *log_string, ...)
 	va_list arg_ptr;
 	va_start(arg_ptr, log_string);
 
-	logger->handler->log_to(logger->handler, level, log_string, arg_ptr);
+	obj_list_node *iter;	
+	for (iter = (logger->handler_list->head.next_obj); (iter->this_obj) != NULL; iter = iter->next_obj) {
+		struct log_handler * handler = (struct log_handler*)(iter->this_obj);
+		handler->log_to(handler, level, log_string, arg_ptr);
+	}
+	//logger->handler->log_to(logger->handler, level, log_string, arg_ptr);
 
 	va_end(arg_ptr);
 	return;

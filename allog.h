@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "list.h"
 
 typedef enum {NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL} log_lev;
 
@@ -18,6 +19,7 @@ struct file_handler{
 typedef struct log_obj {
 	log_lev level;
 	struct log_handler *handler;
+	obj_list *handler_list;
 	void (*add_handler)(struct log_obj*, struct log_handler*);
 	void (*set_level) (struct log_obj*, log_lev);
 	log_lev (*get_effective_level)(struct log_obj*);
@@ -26,9 +28,9 @@ typedef struct log_obj {
 
 log_obj *new_log_obj(log_lev);	
 void set_level(struct log_obj*, log_lev);
-void add_handler(struct log_obj*, struct log_handler*);
+void add_handler(struct log_obj*, void* handler);
 struct file_handler* new_file_handler(char *file_name);
-struct file_handler* new_stream_handler(FILE*);
-struct file_handler* new_syslog_handler();
+//struct file_handler* new_stream_handler(FILE*);
+//struct file_handler* new_syslog_handler();
 void log_message(struct log_obj *log, log_lev level, char *log_string, ...);
 #endif
