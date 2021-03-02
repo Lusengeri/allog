@@ -35,12 +35,16 @@ void log_message(struct log_obj *logger, log_lev level, char *log_string, ...)
 	va_list arg_ptr;
 	va_start(arg_ptr, log_string);
 
-	obj_list_node *iter;	
+		
+	obj_list_node *iter;
+	
 	for (iter = (logger->handler_list->head.next_obj); (iter->this_obj) != NULL; iter = iter->next_obj) {
 		struct log_handler *handler = (struct log_handler*) (iter->this_obj);
-		handler->log_to(handler, level, log_string, arg_ptr);
+		va_list send;
+		va_copy(send, arg_ptr);
+		handler->log_to(handler, level, log_string, send);
 	}
-
+		
 	va_end(arg_ptr);
 	return;
 }
@@ -51,6 +55,7 @@ void log_message_to_file(struct log_handler *handler, log_lev level, char *log_s
 	char full_log_string[2048];
 	vsprintf(full_log_string, log_string, arg_ptr);
 	fprintf(f_handler->file, "[%s]:[%s]:%s\n", get_current_time_string(), level_strings[level], full_log_string);
+	fflush(f_handler->file);
 	return;
 }
 
@@ -101,7 +106,6 @@ struct file_handler* new_file_handler(char *file_name)
 struct file_handler* new_stream_handler(FILE *file_stream)
 {
 	struct file_handler *new = malloc(sizeof(struct file_handler));
-	//What error handling's required here?
 	new->base.log_to = log_message_to_file;
 	new->file = file_stream;
 	return new;
